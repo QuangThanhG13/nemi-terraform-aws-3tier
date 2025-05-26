@@ -6,6 +6,17 @@ yum install -y httpd
 systemctl start httpd
 systemctl enable httpd
 
+## update and install docker
+sudo yum update -y
+sudo yum install -y docker 
+
+# start docker
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# add ec2-user to docker group
+sudo usermod -aG docker ec2-user
+
 # Create a simple web page
 cat > /var/www/html/index.html << 'EOF'
 <!DOCTYPE html>
