@@ -1,8 +1,12 @@
 # AWS Infrastructure with Terraform
 
-This project implements a complete AWS infrastructure using Terraform, including VPC, EC2 Auto Scaling, RDS PostgreSQL, and Application Load Balancer.
+## Hi everyone, I’m QThanh. This is my first attempt at using Terraform for Infrastructure as Code, so please feel free to share any feedback or point out anything I can improve. Thank you! 
+
+This project including VPC, EC2 Auto Scaling, RDS PostgreSQL, and Application Load Balancer.
 
 ## System Architecture
+### AWS Architecture Diagram (Nemi)
+<img width="836" alt="image" src="https://github.com/user-attachments/assets/6f552a00-223d-4d2a-8c78-a9c91446de7d" />
 
 ### Network Layout
 - **VPC** (`10.0.0.0/16`):
@@ -50,9 +54,31 @@ This project implements a complete AWS infrastructure using Terraform, including
 ## Deployment
 
 ### Prerequisites
-- Configured AWS CLI
-- Installed Terraform
-- Session Manager plugin (for SSH)
+✅ Configured AWS CLI
+```bash
+export AWS_ACCESS_KEY_ID=....
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_REGION=...
+```
+✅ Installed Terraform for mac 
+```bash
+brew tap hashicorp/tap
+brew install hashicorp/tap/terraform
+```
+
+✅ Session Manager Plugin (for SSH)
+This plugin works in conjunction with:
+
+- **AWS CLI**
+- **SSH configuration** (already set up in your `~/.ssh/config` file)
+- **IAM permissions** (configured via Terraform)
+- **VPC Endpoints** (configured in the networking module)
+
+To install it on **macOS**, use Homebrew:
+
+```bash
+brew install --cask session-manager-plugin
+```
 
 ### Deployment Steps
 
@@ -70,21 +96,48 @@ This project implements a complete AWS infrastructure using Terraform, including
    ```bash
    terraform apply
    ```
+-> Succesfull : 
+<img width="888" alt="image" src="https://github.com/user-attachments/assets/c9314f97-1239-4a53-bb32-96d43570ac77" />
 
 ### Connecting to Instances
+
+1. **Find Instance id of EC2**
+  <img width="1536" alt="image" src="https://github.com/user-attachments/assets/a66b006b-25ce-4a72-a186-f6b1b2758808" />
 
 1. **SSH to EC2 via Session Manager**
    ```bash
    aws ssm start-session --target INSTANCE_ID
    ```
+   <img width="550" alt="image" src="https://github.com/user-attachments/assets/cbfe8867-485c-4974-8dfc-362b889759ec" />
 
 2. **Connect to RDS**
+   - Install psql
+    ```bash
+     sudo yum install postgresql15 -y
+    ```
+    
    - Only accessible from EC2 instances
    ```bash
    psql -h ENDPOINT -U dbadmin -d myapp
    ```
+   <img width="811" alt="image" src="https://github.com/user-attachments/assets/f75a8083-d42e-4107-bec8-51805244a413" />
 
 ## Monitoring & Maintenance
+- To test ASG I used:
+```bash
+hey -z 300s -c 100 <IP_server>
+```
+<img width="828" alt="image" src="https://github.com/user-attachments/assets/50f4c445-4a80-4fff-9ab8-0acaf2daf951" />
+
+- Initially there was only 1 ec2 like this :
+  <img width="1508" alt="image" src="https://github.com/user-attachments/assets/71586f04-a465-47e3-8d9f-d72b1bbf1e44" />
+
+- After running the test command, it will scale up to 2 more 
+<img width="1500" alt="image" src="https://github.com/user-attachments/assets/fd338747-e77f-447f-83db-6d01bdd65e68" />
+
+
+  
+
 
 ### Auto Scaling
 - Scales out when CPU > 70%
