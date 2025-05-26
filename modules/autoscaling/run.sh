@@ -28,6 +28,7 @@ cat > /var/www/html/index.html << 'EOF'
     <h1>Hello from EC2</h1>
 </body>
 </html>
+
 EOF
 
 # Create health check endpoint

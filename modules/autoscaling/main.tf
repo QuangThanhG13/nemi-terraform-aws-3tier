@@ -10,12 +10,12 @@ data "aws_ami" "ami" {
 }
 
 resource "aws_iam_instance_profile" "web" {
-    name_prefix = "web-"
+    name_prefix = "${var.project}-web-"
     role = aws_iam_role.web.name
 }
 
 resource "aws_iam_role" "web" {
-    name_prefix = "web-"
+    name_prefix = "${var.project}-web-"
     assume_role_policy = jsonencode({
         Version = "2012-10-17"
         Statement = [
@@ -28,6 +28,10 @@ resource "aws_iam_role" "web" {
             }
         ]
     })
+
+    tags = {
+        Name = "${var.project}-web-role"
+    }
 }
 
 resource "aws_iam_role_policy_attachment" "ssm" {
@@ -36,7 +40,7 @@ resource "aws_iam_role_policy_attachment" "ssm" {
 }
 
 resource "aws_iam_role_policy" "ec2_permissions" {
-    name = "ec2-permissions"
+    name = "${var.project}-ec2-permissions"
     role = aws_iam_role.web.name
 
     policy = jsonencode({
@@ -57,14 +61,14 @@ resource "aws_iam_role_policy" "ec2_permissions" {
 }
 
 resource "aws_key_pair" "web" {
-    key_name_prefix = "web-"
+    key_name_prefix = "${var.project}-web-"
     public_key = file("${path.module}/web.pub")
 }
 
 resource "aws_launch_template" "web" { 
-    name_prefix = "web-"
+    name_prefix = "${var.project}-web-"
     image_id = data.aws_ami.ami.id
-    instance_type = "t4g.micro"
+    instance_type = var.instance_type
 
     iam_instance_profile {
         name = aws_iam_instance_profile.web.name
@@ -75,11 +79,23 @@ resource "aws_launch_template" "web" {
         security_groups = [var.sg.web.id]
     }
 
-    user_data = filebase64("${path.module}/run.sh")
+    user_data = base64encode(templatefile("${path.module}/run.sh", {
+        db_endpoint = var.db_config.endpoint
+        db_name     = var.db_config.db_name
+        db_username = var.db_config.db_username
+    }))
 
     metadata_options {
         http_endpoint = "enabled"
         http_tokens = "required"
+    }
+
+    tags = {
+        Name = "${var.project}-launch-template"
+    }
+
+    lifecycle {
+        create_before_destroy = true
     }
 }
 
@@ -87,23 +103,34 @@ data "aws_region" "current" {}
 
 resource "aws_autoscaling_group" "web" { 
     name = "${var.project}-asg" 
-    min_size = 1
-    max_size = 3
-    desired_capacity = 1
+    min_size = var.min_size
+    max_size = var.max_size
+    desired_capacity = var.desired_capacity
     vpc_zone_identifier = var.vpc.private_subnets
     target_group_arns = module.alb.target_group_arns
-    health_check_type = "ELB"
-    health_check_grace_period = 180
+    health_check_type = var.health_check_type
+    health_check_grace_period = var.health_check_grace_period
 
     launch_template {
         id = aws_launch_template.web.id
         version = aws_launch_template.web.latest_version
     }
 
-    tag {
-        key = "Name"
-        value = "${var.project}-web"
-        propagate_at_launch = true
+    dynamic "tag" {
+        for_each = {
+            Name = "${var.project}-web"
+            Environment = var.environment
+            Project = var.project
+        }
+        content {
+            key = tag.key
+            value = tag.value
+            propagate_at_launch = true
+        }
+    }
+
+    lifecycle {
+        create_before_destroy = true
     }
 }
 
@@ -116,7 +143,7 @@ resource "aws_autoscaling_policy" "cpu_policy" {
         predefined_metric_specification {
             predefined_metric_type = "ASGAverageCPUUtilization"
         }
-        target_value = 70.0
+        target_value = var.target_cpu_utilization
     }
 }
 
@@ -124,7 +151,7 @@ module "alb" {
     source = "terraform-aws-modules/alb/aws"
     version = "~> 8.0"
 
-    name = var.project
+    name = "${var.project}-alb"
 
     vpc_id = var.vpc.vpc_id
     subnets = var.vpc.public_subnets
@@ -138,12 +165,12 @@ module "alb" {
             target_type = "instance"
             health_check = {
                 enabled = true
-                interval = 30
-                path = "/"
+                interval = var.health_check_interval
+                path = var.health_check_path
                 port = "traffic-port"
-                healthy_threshold = 2
-                unhealthy_threshold = 2
-                timeout = 5
+                healthy_threshold = var.healthy_threshold
+                unhealthy_threshold = var.unhealthy_threshold
+                timeout = var.health_check_timeout
                 protocol = "HTTP"
                 matcher = "200-399"
             }
@@ -157,4 +184,8 @@ module "alb" {
             target_group_index = 0
         }
     ]
+
+    tags = {
+        Name = "${var.project}-alb"
+    }
 }
