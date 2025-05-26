@@ -132,7 +132,9 @@ hey -z 300s -c 100 <IP_server>
 - Initially there was only 1 ec2 like this :
   <img width="1508" alt="image" src="https://github.com/user-attachments/assets/71586f04-a465-47e3-8d9f-d72b1bbf1e44" />
 
-- After running the test command, it will scale up to 2 more :
+- After running the test command, it will scale up to 2 more 
+  <img width="1487" alt="image" src="https://github.com/user-attachments/assets/4994b96d-7f80-405a-a5b4-66cf1c710642" />
+
   
 
 
