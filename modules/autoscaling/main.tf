@@ -29,6 +29,7 @@ resource "aws_iam_role" "web" {
         ]
     })
 
+
     tags = {
         Name = "${var.project}-web-role"
     }
@@ -139,6 +140,7 @@ resource "aws_autoscaling_policy" "cpu_policy" {
     autoscaling_group_name = aws_autoscaling_group.web.name
     policy_type = "TargetTrackingScaling"
 
+#target tracking policy is a policy that scales the ASG based on the CPU utilization -> increase or decrease the ec2 instances
     target_tracking_configuration {
         predefined_metric_specification {
             predefined_metric_type = "ASGAverageCPUUtilization"

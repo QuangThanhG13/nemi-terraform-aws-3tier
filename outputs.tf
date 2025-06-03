@@ -4,10 +4,14 @@ output "alb_dns_name" {
 } 
 
 output "db_password" { 
-    value = module.database.config.password
+    value = module.database.db_instance.password
     sensitive = true  
 }
 
 output "lb_dns_name" { 
     value = module.autoscaling.lb_dns
+}
+
+output "db_endpoint" { 
+  value = module.database.db_instance.endpoint
 }
